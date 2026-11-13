@@ -5,6 +5,7 @@ pub mod theme;
 pub mod state;
 pub mod components;
 pub mod views;
+pub mod ui;
 
 use theme::DiscordTheme;
 use state::{AppState, NavigationTarget};

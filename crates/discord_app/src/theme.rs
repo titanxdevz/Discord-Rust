@@ -41,6 +41,9 @@ pub struct DiscordTheme {
     pub bg_composer: Color,       // #383a40 - Message input box
 
     // Brand and status accents
+    pub brand_rust: Color,        // #e05d44 - Discord Rust Logo Copper
+    pub brand_rust_dark: Color,   // #a72e1b - Rust Dark Accent
+    pub brand_rust_hover: Color,  // #f74c00 - Rust Hover Glow
     pub brand_blurple: Color,     // #5865f2 - Discord Blurple
     pub status_online: Color,     // #23a55a - Green
     pub status_idle: Color,       // #f0b232 - Amber / Yellow
@@ -77,6 +80,9 @@ impl Default for DiscordTheme {
             bg_selected: Color::rgba(255, 255, 255, 31),
             bg_composer: Color::from_hex(0x383a40),
 
+            brand_rust: Color::from_hex(0xe05d44),
+            brand_rust_dark: Color::from_hex(0xa72e1b),
+            brand_rust_hover: Color::from_hex(0xf74c00),
             brand_blurple: Color::from_hex(0x5865f2),
             status_online: Color::from_hex(0x23a55a),
             status_idle: Color::from_hex(0xf0b232),
