@@ -1,5 +1,13 @@
 //! Discord Gateway Protocol and Real-Time Event Engine
 
+pub mod events;
+pub mod compression;
+pub mod client;
+
+pub use events::*;
+pub use compression::*;
+pub use client::*;
+
 use serde::{Deserialize, Serialize};
 use discord_core::snowflake::Snowflake;
 

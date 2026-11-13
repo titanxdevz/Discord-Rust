@@ -31,6 +31,10 @@ pub enum MarkdownNode {
         id: Snowflake,
         animated: bool,
     },
+    Timestamp {
+        seconds: i64,
+        style: Option<char>, // 't', 'T', 'd', 'D', 'f', 'F', 'R'
+    },
     Link {
         title: String,
         url: String,
@@ -48,6 +52,48 @@ impl DiscordMarkdownParser {
         let mut idx = 0;
 
         while idx < chars.len() {
+            // Multiline blockquote: >>>
+            if idx == 0 && chars.starts_with(&['>', '>', '>', ' ']) {
+                idx += 4;
+                let remainder: String = chars[idx..].iter().collect();
+                nodes.push(MarkdownNode::BlockQuote(Self::parse(&remainder)));
+                break;
+            }
+
+            // Singleline blockquote: >
+            if (idx == 0 || chars[idx - 1] == '\n') && chars[idx..].starts_with(&['>', ' ']) {
+                idx += 2;
+                let mut line = String::new();
+                while idx < chars.len() && chars[idx] != '\n' {
+                    line.push(chars[idx]);
+                    idx += 1;
+                }
+                nodes.push(MarkdownNode::BlockQuote(Self::parse(&line)));
+                continue;
+            }
+
+            // Headings: # , ## , ### 
+            if (idx == 0 || chars[idx - 1] == '\n') && chars[idx] == '#' {
+                let mut level = 0;
+                while idx < chars.len() && chars[idx] == '#' && level < 3 {
+                    level += 1;
+                    idx += 1;
+                }
+                if idx < chars.len() && chars[idx] == ' ' {
+                    idx += 1;
+                    let mut text = String::new();
+                    while idx < chars.len() && chars[idx] != '\n' {
+                        text.push(chars[idx]);
+                        idx += 1;
+                    }
+                    nodes.push(MarkdownNode::Heading {
+                        level,
+                        children: Self::parse(&text),
+                    });
+                    continue;
+                }
+            }
+
             // Code block: ```[lang]\n...\n```
             if chars[idx..].starts_with(&['`', '`', '`']) {
                 idx += 3;
@@ -104,6 +150,21 @@ impl DiscordMarkdownParser {
                 continue;
             }
 
+            // Underline: __...__
+            if chars[idx..].starts_with(&['_', '_']) {
+                idx += 2;
+                let mut inner = String::new();
+                while idx < chars.len() && !chars[idx..].starts_with(&['_', '_']) {
+                    inner.push(chars[idx]);
+                    idx += 1;
+                }
+                if idx < chars.len() && chars[idx..].starts_with(&['_', '_']) {
+                    idx += 2;
+                }
+                nodes.push(MarkdownNode::Underline(Self::parse(&inner)));
+                continue;
+            }
+
             // Strikethrough: ~~...~~
             if chars[idx..].starts_with(&['~', '~']) {
                 idx += 2;
@@ -134,7 +195,7 @@ impl DiscordMarkdownParser {
                 continue;
             }
 
-            // Mentions: <@...>, <#...>, <:name:id>, <a:name:id>
+            // Mentions and Timestamps: <@...>, <#...>, <:name:id>, <t:timestamp:style>
             if chars[idx] == '<' {
                 let start = idx;
                 let mut tag = String::new();
@@ -145,7 +206,7 @@ impl DiscordMarkdownParser {
                 if idx < chars.len() && chars[idx] == '>' {
                     tag.push('>');
                     idx += 1;
-                    if let Some(mention) = Self::parse_mention(&tag) {
+                    if let Some(mention) = Self::parse_special_tag(&tag) {
                         nodes.push(mention);
                         continue;
                     }
@@ -159,6 +220,7 @@ impl DiscordMarkdownParser {
                 && chars[idx] != '`'
                 && chars[idx] != '<'
                 && !chars[idx..].starts_with(&['*', '*'])
+                && !chars[idx..].starts_with(&['_', '_'])
                 && !chars[idx..].starts_with(&['|', '|'])
                 && !chars[idx..].starts_with(&['~', '~'])
             {
@@ -173,7 +235,7 @@ impl DiscordMarkdownParser {
         nodes
     }
 
-    fn parse_mention(tag: &str) -> Option<MarkdownNode> {
+    fn parse_special_tag(tag: &str) -> Option<MarkdownNode> {
         if tag.starts_with("<@&") && tag.ends_with('>') {
             let id_str = &tag[3..tag.len() - 1];
             id_str.parse::<u64>().ok().map(|id| MarkdownNode::RoleMention(Snowflake::new(id)))
@@ -192,6 +254,12 @@ impl DiscordMarkdownParser {
         } else if tag.starts_with("<#") && tag.ends_with('>') {
             let id_str = &tag[2..tag.len() - 1];
             id_str.parse::<u64>().ok().map(|id| MarkdownNode::ChannelMention(Snowflake::new(id)))
+        } else if tag.starts_with("<t:") && tag.ends_with('>') {
+            let body = &tag[3..tag.len() - 1];
+            let parts: Vec<&str> = body.split(':').collect();
+            let seconds = parts[0].parse::<i64>().ok()?;
+            let style = parts.get(1).and_then(|s| s.chars().next());
+            Some(MarkdownNode::Timestamp { seconds, style })
         } else if (tag.starts_with("<:") || tag.starts_with("<a:")) && tag.ends_with('>') {
             let animated = tag.starts_with("<a:");
             let prefix_len = if animated { 3 } else { 2 };

@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::snowflake::Snowflake;
 
 bitflags! {
     /// Discord 64-bit Permission Bitflags
@@ -60,6 +61,67 @@ impl Permissions {
     #[inline]
     pub fn has(&self, perm: Permissions) -> bool {
         self.contains(Permissions::ADMINISTRATOR) || self.contains(perm)
+    }
+
+    /// Compute effective permissions for a guild member in a specific channel
+    /// following Discord's exact canonical permission resolution hierarchy.
+    pub fn compute_channel_permissions(
+        member_id: Snowflake,
+        member_roles: &[Snowflake],
+        guild_owner_id: Snowflake,
+        guild_id: Snowflake,
+        roles: &[crate::models::guild::Role],
+        channel_overwrites: &[crate::models::channel::PermissionOverwrite],
+    ) -> Permissions {
+        // 1. Guild owner always has all permissions
+        if member_id == guild_owner_id {
+            return Permissions::all();
+        }
+
+        // 2. Base permissions from @everyone role (id == guild_id)
+        let mut permissions = roles
+            .iter()
+            .find(|r| r.id == guild_id)
+            .map(|r| r.permissions)
+            .unwrap_or_else(Permissions::empty);
+
+        // 3. Union with all roles assigned to member
+        for role_id in member_roles {
+            if let Some(role) = roles.iter().find(|r| r.id == *role_id) {
+                permissions |= role.permissions;
+            }
+        }
+
+        // 4. Administrator bypasses all channel-level overwrites
+        if permissions.contains(Permissions::ADMINISTRATOR) {
+            return Permissions::all();
+        }
+
+        // 5. Channel @everyone overwrite
+        if let Some(everyone_ow) = channel_overwrites.iter().find(|ow| ow.id == guild_id) {
+            permissions &= !everyone_ow.deny;
+            permissions |= everyone_ow.allow;
+        }
+
+        // 6. Channel role overwrites (union of role denies and role allows)
+        let mut role_deny = Permissions::empty();
+        let mut role_allow = Permissions::empty();
+        for role_id in member_roles {
+            if let Some(ow) = channel_overwrites.iter().find(|ow| ow.id == *role_id) {
+                role_deny |= ow.deny;
+                role_allow |= ow.allow;
+            }
+        }
+        permissions &= !role_deny;
+        permissions |= role_allow;
+
+        // 7. Channel member-specific overwrite
+        if let Some(member_ow) = channel_overwrites.iter().find(|ow| ow.id == member_id) {
+            permissions &= !member_ow.deny;
+            permissions |= member_ow.allow;
+        }
+
+        permissions
     }
 }
 
