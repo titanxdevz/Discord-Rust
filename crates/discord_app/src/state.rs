@@ -31,6 +31,9 @@ pub struct AppState {
     // UI toggles
     pub is_member_list_visible: bool,
     pub is_settings_open: bool,
+    pub is_login_modal_open: bool,
+    pub token_input: String,
+    pub auth_status_message: Option<String>,
     pub search_query: String,
 }
 
@@ -50,6 +53,9 @@ impl Default for AppState {
             is_screen_sharing: false,
             is_member_list_visible: true,
             is_settings_open: false,
+            is_login_modal_open: false,
+            token_input: String::new(),
+            auth_status_message: None,
             search_query: String::new(),
         }
     }
