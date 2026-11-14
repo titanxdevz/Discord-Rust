@@ -18,6 +18,11 @@
   <img src="https://img.shields.io/badge/Tests-14_Passed_•_100%25-23A55A?style=for-the-badge" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/titanxdevz/Discord-Rust/releases/latest"><img src="https://img.shields.io/badge/⬇️_Download_Windows_App_(v0.1.0)-E05D44?style=for-the-badge&logo=windows&logoColor=white" /></a>
+  <a href="https://github.com/titanxdevz/Discord-Rust/releases/download/v0.1.0/Discord-Rust-v0.1.0-windows-x64.zip"><img src="https://img.shields.io/badge/📦_Portable_Zip_(3.3_MB)-313338?style=for-the-badge" /></a>
+</p>
+
 ---
 
 ## 🖥️ Desktop Client UI Preview
