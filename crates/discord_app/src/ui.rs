@@ -744,6 +744,10 @@ impl Render for DiscordRustAppView {
                                                                     .text_xs()
                                                                     .cursor_pointer()
                                                                     .child("🚀 12")
+                                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|_this, _, _window, cx| {
+                                                                        tracing::info!("Clicked 🚀 reaction on message");
+                                                                        cx.notify();
+                                                                    }))
                                                             )
                                                             .child(
                                                                 div()
@@ -758,6 +762,10 @@ impl Render for DiscordRustAppView {
                                                                     .text_xs()
                                                                     .cursor_pointer()
                                                                     .child("🦀 8")
+                                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|_this, _, _window, cx| {
+                                                                        tracing::info!("Clicked 🦀 reaction on message");
+                                                                        cx.notify();
+                                                                    }))
                                                             )
                                                     )
                                             )

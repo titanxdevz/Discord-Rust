@@ -241,5 +241,11 @@ async fn main() -> anyhow::Result<()> {
     SettingsView::render(&state, &theme, SettingsTab::VoiceAndVideo);
 
     tracing::info!("Discord Native Client completely loaded and operating with feature parity.");
+
+    // 4. Launch live GPUI DirectX 12 hardware-accelerated desktop window if --gui flag is passed
+    if std::env::args().any(|arg| arg == "--gui") {
+        ui::run_desktop_app();
+    }
+
     Ok(())
 }
