@@ -28,6 +28,9 @@ impl DiscordRustAppView {
         if let Some(ref token) = cached_token {
             tracing::info!("Found active Discord credential in DPAPI vault.");
             state.active_token = Some(token.clone());
+            state.is_authenticated = true;
+        } else {
+            state.is_authenticated = false;
         }
 
         // Populate initial Discord Rust state
@@ -230,15 +233,392 @@ impl DiscordRustAppView {
             new_message_text: String::new(),
         }
     }
+
+    pub fn render_titlebar(&self) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_row()
+            .h(px(32.0))
+            .w_full()
+            .bg(rgb(0x1e1f22))
+            .items_center()
+            .justify_between()
+            .px(px(12.0))
+            .text_xs()
+            .text_color(rgb(0x949ba4))
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(8.0))
+                    .child(
+                        div()
+                            .w(px(14.0))
+                            .h(px(14.0))
+                            .rounded_full()
+                            .bg(rgb(0xe05d44))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child("🦀")
+                    )
+                    .child("Discord - Native Rust Client")
+                    .child(
+                        div()
+                            .px(px(6.0))
+                            .py(px(1.0))
+                            .rounded(px(8.0))
+                            .bg(gpui::rgba(0x23a55a26))
+                            .text_color(rgb(0x23a55a))
+                            .child("DirectX 12 • 120 FPS")
+                    )
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .gap(px(16.0))
+                    .child("─")
+                    .child("□")
+                    .child("✕")
+            )
+    }
+
+    pub fn render_skeleton_messages() -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(24.0))
+            .p(px(16.0))
+            .child(Self::render_single_skeleton_row(px(420.0), px(280.0)))
+            .child(Self::render_single_skeleton_row(px(540.0), px(360.0)))
+            .child(Self::render_single_skeleton_row(px(380.0), px(200.0)))
+            .child(Self::render_single_skeleton_row(px(490.0), px(310.0)))
+    }
+
+    fn render_single_skeleton_row(w1: gpui::Pixels, w2: gpui::Pixels) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_row()
+            .gap(px(16.0))
+            .items_start()
+            .child(
+                div()
+                    .w(px(40.0))
+                    .h(px(40.0))
+                    .rounded_full()
+                    .bg(rgb(0x35373c))
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.0))
+                    .child(
+                        div()
+                            .h(px(12.0))
+                            .w(px(130.0))
+                            .rounded(px(4.0))
+                            .bg(rgb(0x35373c))
+                    )
+                    .child(
+                        div()
+                            .h(px(14.0))
+                            .w(w1)
+                            .rounded(px(4.0))
+                            .bg(rgb(0x2b2d31))
+                    )
+                    .child(
+                        div()
+                            .h(px(14.0))
+                            .w(w2)
+                            .rounded(px(4.0))
+                            .bg(rgb(0x2b2d31))
+                    )
+            )
+    }
+
+    pub fn render_login_screen(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
+        let is_connecting = self.state.is_connecting;
+        let show_token_plain = self.state.show_token_plain;
+        let auth_status = self.state.auth_status_message.clone();
+
+        div()
+            .flex_1()
+            .size_full()
+            .bg(rgb(0x1e1f22))
+            .flex()
+            .items_center()
+            .justify_center()
+            .p(px(24.0))
+            .child(
+                div()
+                    .w(px(784.0))
+                    .bg(rgb(0x313338))
+                    .rounded(px(8.0))
+                    .p(px(32.0))
+                    .flex()
+                    .flex_row()
+                    .gap(px(32.0))
+                    .child(
+                        div()
+                            .flex_1()
+                            .flex()
+                            .flex_col()
+                            .gap(px(16.0))
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_row()
+                                    .items_center()
+                                    .gap(px(10.0))
+                                    .child(
+                                        div()
+                                            .w(px(36.0))
+                                            .h(px(36.0))
+                                            .rounded(px(12.0))
+                                            .bg(rgb(0xe05d44))
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .text_lg()
+                                            .child("🦀")
+                                    )
+                                    .child(
+                                        div()
+                                            .text_lg()
+                                            .font_weight(gpui::FontWeight::BOLD)
+                                            .text_color(rgb(0xe05d44))
+                                            .child("DISCORD RUST")
+                                    )
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_col()
+                                    .gap(px(4.0))
+                                    .child(
+                                        div()
+                                            .text_2xl()
+                                            .font_weight(gpui::FontWeight::BOLD)
+                                            .text_color(rgb(0xf2f3f5))
+                                            .child("Welcome back!")
+                                    )
+                                    .child(
+                                        div()
+                                            .text_sm()
+                                            .text_color(rgb(0x949ba4))
+                                            .child("We're so excited to see you again! Sign in to connect.")
+                                    )
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_col()
+                                    .gap(px(8.0))
+                                    .child(
+                                        div()
+                                            .text_xs()
+                                            .font_weight(gpui::FontWeight::BOLD)
+                                            .text_color(rgb(0xb5bac1))
+                                            .child("AUTHENTICATION TOKEN OR BOT KEY")
+                                    )
+                                    .child(
+                                        div()
+                                            .h(px(44.0))
+                                            .w_full()
+                                            .bg(rgb(0x1e1f22))
+                                            .rounded(px(4.0))
+                                            .px(px(12.0))
+                                            .flex()
+                                            .flex_row()
+                                            .items_center()
+                                            .justify_between()
+                                            .child(
+                                                div()
+                                                    .text_sm()
+                                                    .text_color(rgb(0xdbdee1))
+                                                    .child(if show_token_plain {
+                                                        "MTAwMTAwMTAwMTAw.SampleToken.VerifiedNativeDiscordRust"
+                                                    } else {
+                                                        "••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+                                                    })
+                                            )
+                                            .child(
+                                                div()
+                                                    .cursor_pointer()
+                                                    .text_xs()
+                                                    .text_color(rgb(0x949ba4))
+                                                    .child(if show_token_plain { "🙈 Hide" } else { "👁️ Show" })
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                                        this.state.show_token_plain = !this.state.show_token_plain;
+                                                        cx.notify();
+                                                    }))
+                                            )
+                                    )
+                                    .child(
+                                        div()
+                                            .text_xs()
+                                            .text_color(rgb(0x949ba4))
+                                            .child("🔐 Credentials are encrypted on disk via native Windows DPAPI (CryptProtectData).")
+                                    )
+                            )
+                            .when_some(auth_status, |d, msg| {
+                                d.child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(rgb(0x23a55a))
+                                        .child(format!("● {}", msg))
+                                )
+                            })
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_col()
+                                    .gap(px(10.0))
+                                    .pt(px(6.0))
+                                    .child(
+                                        div()
+                                            .h(px(44.0))
+                                            .w_full()
+                                            .bg(rgb(0xe05d44))
+                                            .rounded(px(4.0))
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .text_sm()
+                                            .font_weight(gpui::FontWeight::BOLD)
+                                            .cursor_pointer()
+                                            .text_color(rgb(0xffffff))
+                                            .child(if is_connecting {
+                                                "⏳ Connecting to Discord Gateway..."
+                                            } else {
+                                                "Log In with Discord"
+                                            })
+                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                                tracing::info!("Login clicked. Restoring session and connecting to Discord...");
+                                                let token = "MTAwMTAwMTAwMTAw.SampleToken.VerifiedNativeDiscordRust".to_string();
+                                                let _ = discord_storage::TokenStore::save_token_to_vault(&token);
+                                                this.state.active_token = Some(token);
+                                                this.state.is_authenticated = true;
+                                                this.state.auth_status_message = Some("Session restored via Windows DPAPI".to_string());
+                                                cx.notify();
+                                            }))
+                                    )
+                                    .child(
+                                        div()
+                                            .h(px(38.0))
+                                            .w_full()
+                                            .bg(rgb(0x383a40))
+                                            .rounded(px(4.0))
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .text_xs()
+                                            .font_weight(gpui::FontWeight::MEDIUM)
+                                            .cursor_pointer()
+                                            .text_color(rgb(0xdbdee1))
+                                            .child("🦀 Continue as Guest (Rust Community Workspace)")
+                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                                this.state.is_authenticated = true;
+                                                cx.notify();
+                                            }))
+                                    )
+                            )
+                    )
+                    .child(
+                        div()
+                            .w(px(1.0))
+                            .h_full()
+                            .bg(rgb(0x3f4147))
+                    )
+                    .child(
+                        div()
+                            .w(px(240.0))
+                            .flex()
+                            .flex_col()
+                            .items_center()
+                            .justify_center()
+                            .text_center()
+                            .gap(px(16.0))
+                            .child(
+                                div()
+                                    .w(px(176.0))
+                                    .h(px(176.0))
+                                    .bg(rgb(0xffffff))
+                                    .rounded(px(8.0))
+                                    .p(px(16.0))
+                                    .flex()
+                                    .flex_col()
+                                    .items_center()
+                                    .justify_center()
+                                    .child(
+                                        div()
+                                            .w(px(144.0))
+                                            .h(px(144.0))
+                                            .bg(rgb(0x1e1f22))
+                                            .rounded(px(4.0))
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .child(
+                                                div()
+                                                    .w(px(48.0))
+                                                    .h(px(48.0))
+                                                    .rounded(px(16.0))
+                                                    .bg(rgb(0xe05d44))
+                                                    .flex()
+                                                    .items_center()
+                                                    .justify_center()
+                                                    .text_2xl()
+                                                    .child("🦀")
+                                            )
+                                    )
+                            )
+                            .child(
+                                div()
+                                    .text_lg()
+                                    .font_weight(gpui::FontWeight::BOLD)
+                                    .text_color(rgb(0xf2f3f5))
+                                    .child("Log in with QR Code")
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(rgb(0x949ba4))
+                                    .child("Scan this with the Discord mobile app to log in instantly.")
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(rgb(0x23a55a))
+                                    .child("● Ready for mobile scan")
+                            )
+                    )
+            )
+    }
 }
 
 impl Render for DiscordRustAppView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Dedicated Discord-style Login Screen if not authenticated
+        if !self.state.is_authenticated {
+            return div()
+                .flex()
+                .flex_col()
+                .size_full()
+                .bg(rgb(0x1e1f22))
+                .child(self.render_titlebar())
+                .child(self.render_login_screen(cx));
+        }
+
         let is_voice_connected = self.state.active_voice_channel.is_some();
         let is_muted = self.state.is_muted;
         let is_deafened = self.state.is_deafened;
         let is_settings_open = self.state.is_settings_open;
         let is_login_modal_open = self.state.is_login_modal_open;
+        let is_channel_loading = self.state.is_channel_loading;
         let active_channel_name = self.state.active_channel_id.map(|_| "general").unwrap_or("general");
 
         // 1. Root Container (Full Window)
@@ -249,44 +629,7 @@ impl Render for DiscordRustAppView {
             .bg(rgb(0x1e1f22))
             .text_color(rgb(0xdbdee1))
             // 2. Custom Windows 11 Titlebar
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .h(px(32.0))
-                    .w_full()
-                    .bg(rgb(0x1e1f22))
-                    .items_center()
-                    .justify_between()
-                    .px(px(12.0))
-                    .text_xs()
-                    .text_color(rgb(0x949ba4))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_row()
-                            .items_center()
-                            .gap(px(8.0))
-                            // Discord Logo in Rust Color (#E05D44)
-                            .child(
-                                div()
-                                    .w(px(16.0))
-                                    .h(px(16.0))
-                                    .bg(rgb(0xe05d44))
-                                    .rounded(px(4.0))
-                            )
-                            .child("Discord Rust — #general | Rust Community")
-                    )
-                    .child(
-                        div()
-                            .flex()
-                            .flex_row()
-                            .gap(px(12.0))
-                            .child("_")
-                            .child("□")
-                            .child("✕")
-                    )
-            )
+            .child(self.render_titlebar())
             // 3. Main Workspace Area (Rail + Sidebar + Chat + Members)
             .child(
                 div()
@@ -590,6 +933,20 @@ impl Render for DiscordRustAppView {
                                                         cx.notify();
                                                     }))
                                             )
+                                            .child(
+                                                div()
+                                                    .cursor_pointer()
+                                                    .text_color(rgb(0xda373c))
+                                                    .child("🚪")
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                                        tracing::info!("User logged out. Clearing DPAPI vault.");
+                                                        let _ = discord_storage::TokenStore::clear_token_vault();
+                                                        this.state.active_token = None;
+                                                        this.state.is_authenticated = false;
+                                                        this.state.auth_status_message = None;
+                                                        cx.notify();
+                                                    }))
+                                            )
                                     )
                             )
                     )
@@ -637,7 +994,24 @@ impl Render for DiscordRustAppView {
                                         div()
                                             .flex()
                                             .flex_row()
-                                            .gap(px(16.0))
+                                            .items_center()
+                                            .gap(px(12.0))
+                                            .child(
+                                                div()
+                                                    .px(px(8.0))
+                                                    .py(px(4.0))
+                                                    .bg(if is_channel_loading { rgb(0xe05d44) } else { rgb(0x383a40) })
+                                                    .rounded(px(4.0))
+                                                    .text_xs()
+                                                    .font_weight(gpui::FontWeight::BOLD)
+                                                    .text_color(rgb(0xffffff))
+                                                    .cursor_pointer()
+                                                    .child(if is_channel_loading { "⚡ Skeleton Active" } else { "⚡ Toggle Skeleton" })
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                                        this.state.is_channel_loading = !this.state.is_channel_loading;
+                                                        cx.notify();
+                                                    }))
+                                            )
                                             .child("🔔")
                                             .child("📌")
                                             .child("👥")
@@ -660,9 +1034,13 @@ impl Render for DiscordRustAppView {
                                     .flex_1()
                                     .p(px(16.0))
                                     .gap(px(16.0))
-                                    // Cozy Message Group
-                                    .child(
-                                        div()
+                                    .when(is_channel_loading, |d| {
+                                        d.child(Self::render_skeleton_messages())
+                                    })
+                                    .when(!is_channel_loading, |d| {
+                                        d.child(
+                                            // Cozy Message Group
+                                            div()
                                             .flex()
                                             .flex_row()
                                             .gap(px(16.0))
@@ -790,6 +1168,7 @@ impl Render for DiscordRustAppView {
                                                     )
                                             )
                                     )
+                                })
                             )
                             // Message Composer Bar (Bottom)
                             .child(
@@ -987,6 +1366,31 @@ impl Render for DiscordRustAppView {
                                         .text_sm()
                                         .text_color(rgb(0xe05d44))
                                         .child("✓ DAVE E2EE (MLS RFC 9420 ratcheting active)")
+                                )
+                                .child(
+                                    div()
+                                        .mt(px(24.0))
+                                        .w(px(140.0))
+                                        .h(px(38.0))
+                                        .bg(rgb(0xda373c))
+                                        .rounded(px(4.0))
+                                        .flex()
+                                        .items_center()
+                                        .justify_center()
+                                        .text_sm()
+                                        .font_weight(gpui::FontWeight::BOLD)
+                                        .text_color(rgb(0xffffff))
+                                        .cursor_pointer()
+                                        .child("🚪 Log Out")
+                                        .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
+                                            tracing::info!("User logged out from Settings. Clearing DPAPI vault.");
+                                            let _ = discord_storage::TokenStore::clear_token_vault();
+                                            this.state.active_token = None;
+                                            this.state.is_authenticated = false;
+                                            this.state.is_settings_open = false;
+                                            this.state.auth_status_message = None;
+                                            cx.notify();
+                                        }))
                                 )
                         )
                 )

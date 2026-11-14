@@ -136,4 +136,12 @@ impl TokenStore {
         let bytes = std::fs::read(path).ok()?;
         Self::unprotect_string(&bytes).ok()
     }
+
+    /// Clear token from DPAPI vault on logout
+    pub fn clear_token_vault() {
+        if let Some(app_data) = std::env::var_os("APPDATA") {
+            let path = std::path::Path::new(&app_data).join("DiscordRust").join("session.dpapi");
+            let _ = std::fs::remove_file(path);
+        }
+    }
 }
