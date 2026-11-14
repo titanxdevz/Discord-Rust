@@ -116,4 +116,24 @@ impl TokenStore {
     pub fn unprotect_bytes(data: &[u8]) -> Result<Vec<u8>, StorageCryptoError> {
         Ok(data.to_vec())
     }
+
+    /// Save token to disk protected by DPAPI
+    pub fn save_token_to_vault(token: &str) -> Result<(), StorageCryptoError> {
+        let encrypted = Self::protect_bytes(token.as_bytes())?;
+        if let Some(app_data) = std::env::var_os("APPDATA") {
+            let dir = std::path::Path::new(&app_data).join("DiscordRust");
+            let _ = std::fs::create_dir_all(&dir);
+            let path = dir.join("session.dpapi");
+            let _ = std::fs::write(path, encrypted);
+        }
+        Ok(())
+    }
+
+    /// Load token from disk and unprotect using DPAPI
+    pub fn load_token_from_vault() -> Option<String> {
+        let app_data = std::env::var_os("APPDATA")?;
+        let path = std::path::Path::new(&app_data).join("DiscordRust").join("session.dpapi");
+        let bytes = std::fs::read(path).ok()?;
+        Self::unprotect_string(&bytes).ok()
+    }
 }

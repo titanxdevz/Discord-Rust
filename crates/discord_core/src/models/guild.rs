@@ -51,23 +51,41 @@ pub struct GuildMember {
 pub struct Guild {
     pub id: Snowflake,
     pub name: String,
+    #[serde(default)]
     pub icon: Option<String>,
+    #[serde(default)]
     pub description: Option<String>,
+    #[serde(default)]
     pub banner: Option<String>,
+    #[serde(default)]
     pub splash: Option<String>,
+    #[serde(default)]
     pub owner_id: Snowflake,
+    #[serde(default)]
     pub afk_channel_id: Option<Snowflake>,
+    #[serde(default)]
     pub afk_timeout: u32,
+    #[serde(default)]
     pub roles: Vec<Role>,
+    #[serde(default)]
     pub emojis: Vec<Emoji>,
+    #[serde(default)]
     pub verification_level: u8,
+    #[serde(default)]
     pub default_message_notifications: u8,
+    #[serde(default)]
     pub explicit_content_filter: u8,
+    #[serde(default)]
     pub vanity_url_code: Option<String>,
+    #[serde(default)]
     pub premium_tier: u8,
+    #[serde(default)]
     pub premium_subscription_count: Option<u32>,
+    #[serde(default)]
     pub preferred_locale: String,
+    #[serde(default)]
     pub approximate_member_count: Option<u64>,
+    #[serde(default)]
     pub approximate_presence_count: Option<u64>,
 }
 

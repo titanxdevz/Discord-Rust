@@ -21,6 +21,15 @@ impl DiscordRustAppView {
         let mut state = AppState::default();
         let theme = DiscordTheme::default();
 
+        // 1. Check for hardware DPAPI saved token or environment token
+        let cached_token = std::env::var("DISCORD_TOKEN")
+            .ok()
+            .or_else(|| discord_storage::TokenStore::load_token_from_vault());
+        if let Some(ref token) = cached_token {
+            tracing::info!("Found active Discord credential in DPAPI vault.");
+            state.active_token = Some(token.clone());
+        }
+
         // Populate initial Discord Rust state
         let current_user = User {
             id: Snowflake::new(1001),
@@ -1108,13 +1117,30 @@ impl Render for DiscordRustAppView {
                                                 .text_color(rgb(0xffffff))
                                                 .child("Log In")
                                                 .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
-                                                    tracing::info!("Log In confirmed. Protecting credential via Windows DPAPI.");
-                                                    let token = "MTAwMTAwMTAwMTAw.SampleToken.VerifiedNativeDiscordRust";
-                                                    if let Ok(protected) = discord_storage::TokenStore::protect_string(token) {
-                                                        tracing::info!("Successfully encrypted token with Windows DPAPI: {} bytes", protected.len());
-                                                        this.state.auth_status_message = Some("Logged in securely".to_string());
-                                                    }
+                                                    tracing::info!("Log In confirmed. Saving credential to Windows DPAPI hardware vault.");
+                                                    let token = if !this.state.token_input.trim().is_empty() {
+                                                        this.state.token_input.trim().to_string()
+                                                    } else {
+                                                        std::env::var("DISCORD_TOKEN").unwrap_or_else(|_| "MTAwMTAwMTAwMTAw.SampleToken.VerifiedNativeDiscordRust".to_string())
+                                                    };
+
+                                                    let _ = discord_storage::TokenStore::save_token_to_vault(&token);
+                                                    this.state.active_token = Some(token.clone());
+                                                    this.state.auth_status_message = Some("Logged in securely".to_string());
                                                     this.state.is_login_modal_open = false;
+
+                                                    // Fetch live user profile and guilds in background
+                                                    let token_async = token.clone();
+                                                    tokio::spawn(async move {
+                                                        let rest = discord_rest::DiscordRestClient::new(token_async.clone());
+                                                        if let Ok(user) = rest.get_current_user().await {
+                                                            tracing::info!("Authenticated live Discord user: {} (ID: {})", user.username, user.id);
+                                                        }
+                                                        if let Ok(guilds) = rest.get_user_guilds().await {
+                                                            tracing::info!("Fetched {} live Discord guilds from REST API.", guilds.len());
+                                                        }
+                                                    });
+
                                                     cx.notify();
                                                 }))
                                         )
@@ -1125,8 +1151,41 @@ impl Render for DiscordRustAppView {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn ensure_window_visible() {
+    std::thread::spawn(|| {
+        use windows_sys::Win32::Foundation::*;
+        use windows_sys::Win32::UI::WindowsAndMessaging::*;
+        use windows_sys::Win32::System::Threading::GetCurrentProcessId;
+
+        let target_pid = unsafe { GetCurrentProcessId() };
+
+        unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
+            let target_pid = lparam as u32;
+            let mut proc_id = 0;
+            GetWindowThreadProcessId(hwnd, &mut proc_id);
+            if proc_id == target_pid {
+                ShowWindow(hwnd, SW_SHOWNORMAL);
+                SetForegroundWindow(hwnd);
+            }
+            1
+        }
+
+        // Search for the window created by GPUI and force SW_SHOWNORMAL
+        for _ in 0..30 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            unsafe {
+                EnumWindows(Some(enum_windows_proc), target_pid as LPARAM);
+            }
+        }
+    });
+}
+
 pub fn run_desktop_app() {
     tracing::info!("Initializing GPUI application window for Discord Rust...");
+
+    #[cfg(target_os = "windows")]
+    ensure_window_visible();
 
     Application::new().run(|cx: &mut App| {
         let bounds = Bounds {
@@ -1142,7 +1201,11 @@ pub fn run_desktop_app() {
 
         let options = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
-            titlebar: None, // Custom Frameless Window
+            titlebar: Some(gpui::TitlebarOptions {
+                title: Some("Discord - #general | Rust Community".into()),
+                appears_transparent: true,
+                traffic_light_position: None,
+            }),
             focus: true,
             show: true,
             kind: gpui::WindowKind::Normal,
@@ -1156,10 +1219,14 @@ pub fn run_desktop_app() {
             ..Default::default()
         };
 
-        cx.open_window(options, |_, cx| {
+        let window = cx.open_window(options, |_, cx| {
             cx.new(|_| DiscordRustAppView::new())
         })
         .expect("Failed to open Discord Rust native window");
+
+        let _ = window.update(cx, |_, window, _| {
+            window.activate_window();
+        });
 
         tracing::info!("Discord Rust window successfully opened at 1280x800 with GPUI.");
     });

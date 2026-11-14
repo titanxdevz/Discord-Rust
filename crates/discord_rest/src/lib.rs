@@ -13,6 +13,7 @@ pub const DISCORD_API_BASE: &str = "https://discord.com/api/v10";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Route {
     GetMe,
+    GetCurrentUserGuilds,
     GetGuild { guild_id: Snowflake },
     GetChannel { channel_id: Snowflake },
     GetChannelMessages { channel_id: Snowflake, limit: u32 },
@@ -30,6 +31,7 @@ impl Route {
     pub fn path(&self) -> String {
         match self {
             Route::GetMe => "/users/@me".to_string(),
+            Route::GetCurrentUserGuilds => "/users/@me/guilds".to_string(),
             Route::GetGuild { guild_id } => format!("/guilds/{}", guild_id),
             Route::GetChannel { channel_id } => format!("/channels/{}", channel_id),
             Route::GetChannelMessages { channel_id, limit } => {
@@ -62,6 +64,7 @@ impl Route {
     pub fn bucket_key(&self) -> String {
         match self {
             Route::GetMe => "users:@me".to_string(),
+            Route::GetCurrentUserGuilds => "users:@me:guilds".to_string(),
             Route::GetGuild { guild_id } => format!("guilds:{}", guild_id),
             Route::GetChannel { channel_id } => format!("channels:{}", channel_id),
             Route::GetChannelMessages { channel_id, .. } => format!("channels:{}:messages", channel_id),

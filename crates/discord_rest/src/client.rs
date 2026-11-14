@@ -89,6 +89,54 @@ impl DiscordRestClient {
         Ok(user)
     }
 
+    /// Fetch all guilds for the current authenticated user
+    pub async fn get_user_guilds(&self) -> Result<Vec<Guild>, RestError> {
+        let route = Route::GetCurrentUserGuilds;
+        self.rate_limiter.claim(&route.bucket_key()).await;
+
+        let url = self.endpoint_url(&route.path());
+        let res = self.http_client
+            .get(&url)
+            .header("Authorization", self.auth_header())
+            .send()
+            .await
+            .map_err(|e| RestError::Http(e.to_string()))?;
+
+        if !res.status().is_success() {
+            return Err(RestError::Api {
+                code: res.status().as_u16() as u32,
+                message: res.text().await.unwrap_or_default(),
+            });
+        }
+
+        let guilds = res.json::<Vec<Guild>>().await.map_err(|e| RestError::Http(e.to_string()))?;
+        Ok(guilds)
+    }
+
+    /// Fetch a single channel by ID
+    pub async fn get_channel(&self, channel_id: Snowflake) -> Result<Channel, RestError> {
+        let route = Route::GetChannel { channel_id };
+        self.rate_limiter.claim(&route.bucket_key()).await;
+
+        let url = self.endpoint_url(&route.path());
+        let res = self.http_client
+            .get(&url)
+            .header("Authorization", self.auth_header())
+            .send()
+            .await
+            .map_err(|e| RestError::Http(e.to_string()))?;
+
+        if !res.status().is_success() {
+            return Err(RestError::Api {
+                code: res.status().as_u16() as u32,
+                message: res.text().await.unwrap_or_default(),
+            });
+        }
+
+        let channel = res.json::<Channel>().await.map_err(|e| RestError::Http(e.to_string()))?;
+        Ok(channel)
+    }
+
     /// Fetch guild channels
     pub async fn get_guild_channels(&self, guild_id: Snowflake) -> Result<Vec<Channel>, RestError> {
         let route = Route::GetGuild { guild_id };
@@ -161,6 +209,40 @@ impl DiscordRestClient {
 
         let message = res.json::<Message>().await.map_err(|e| RestError::Http(e.to_string()))?;
         Ok(message)
+    }
+
+    /// Add a reaction to a message
+    pub async fn add_reaction(
+        &self,
+        channel_id: Snowflake,
+        message_id: Snowflake,
+        emoji: &str,
+    ) -> Result<(), RestError> {
+        let route = Route::CreateReaction {
+            channel_id,
+            message_id,
+            emoji: emoji.to_string(),
+        };
+        self.rate_limiter.claim(&route.bucket_key()).await;
+
+        let encoded_emoji = emoji;
+        let url = format!("{}/channels/{}/messages/{}/reactions/{}/@me", self.base_url, channel_id, message_id, encoded_emoji);
+        let res = self.http_client
+            .put(&url)
+            .header("Authorization", self.auth_header())
+            .header("Content-Length", "0")
+            .send()
+            .await
+            .map_err(|e| RestError::Http(e.to_string()))?;
+
+        if !res.status().is_success() {
+            return Err(RestError::Api {
+                code: res.status().as_u16() as u32,
+                message: res.text().await.unwrap_or_default(),
+            });
+        }
+
+        Ok(())
     }
 
     /// Prepares a create message payload

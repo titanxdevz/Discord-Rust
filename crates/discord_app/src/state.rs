@@ -35,6 +35,7 @@ pub struct AppState {
     pub token_input: String,
     pub auth_status_message: Option<String>,
     pub search_query: String,
+    pub active_token: Option<String>,
 }
 
 impl Default for AppState {
@@ -57,6 +58,7 @@ impl Default for AppState {
             token_input: String::new(),
             auth_status_message: None,
             search_query: String::new(),
+            active_token: None,
         }
     }
 }
