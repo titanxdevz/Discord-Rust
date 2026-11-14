@@ -308,7 +308,7 @@ impl Render for DiscordRustAppView {
                                     .text_color(rgb(0xffffff))
                                     .cursor_pointer()
                                     .child("🦀")
-                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                         this.state.navigation_target = NavigationTarget::DirectMessages;
                                         cx.notify();
                                     }))
@@ -335,7 +335,7 @@ impl Render for DiscordRustAppView {
                                     .text_color(rgb(0xffffff))
                                     .cursor_pointer()
                                     .child("RC")
-                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                         this.state.navigation_target = NavigationTarget::Guild(Snowflake::new(5001));
                                         cx.notify();
                                     }))
@@ -413,7 +413,7 @@ impl Render for DiscordRustAppView {
                                             .rounded(px(4.0))
                                             .cursor_pointer()
                                             .child("# general")
-                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                 this.state.active_channel_id = Some(Snowflake::new(7001));
                                                 cx.notify();
                                             }))
@@ -438,7 +438,7 @@ impl Render for DiscordRustAppView {
                                             .rounded(px(4.0))
                                             .cursor_pointer()
                                             .child("🔊 General Voice")
-                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                 this.state.active_voice_channel = Some(Snowflake::new(7002));
                                                 cx.notify();
                                             }))
@@ -482,7 +482,7 @@ impl Render for DiscordRustAppView {
                                                 .text_color(rgb(0xf23f43))
                                                 .cursor_pointer()
                                                 .child("Disconnect")
-                                                .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                                .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                     this.state.active_voice_channel = None;
                                                     cx.notify();
                                                 }))
@@ -546,7 +546,7 @@ impl Render for DiscordRustAppView {
                                                     .cursor_pointer()
                                                     .text_color(if is_muted { rgb(0xf23f43) } else { rgb(0xdbdee1) })
                                                     .child(if is_muted { "🎙✕" } else { "🎙" })
-                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                         this.state.is_muted = !this.state.is_muted;
                                                         cx.notify();
                                                     }))
@@ -556,7 +556,7 @@ impl Render for DiscordRustAppView {
                                                     .cursor_pointer()
                                                     .text_color(if is_deafened { rgb(0xf23f43) } else { rgb(0xdbdee1) })
                                                     .child(if is_deafened { "🎧✕" } else { "🎧" })
-                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                         this.state.is_deafened = !this.state.is_deafened;
                                                         cx.notify();
                                                     }))
@@ -565,7 +565,7 @@ impl Render for DiscordRustAppView {
                                                 div()
                                                     .cursor_pointer()
                                                     .child("⚙")
-                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                                    .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                         this.state.is_settings_open = !this.state.is_settings_open;
                                                         cx.notify();
                                                     }))
@@ -930,7 +930,7 @@ impl Render for DiscordRustAppView {
                                                 .cursor_pointer()
                                                 .text_lg()
                                                 .child("✕ ESC")
-                                                .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, cx| {
+                                                .on_mouse_down(gpui::MouseButton::Left, cx.listener(|this, _, _window, cx| {
                                                     this.state.is_settings_open = false;
                                                     cx.notify();
                                                 }))
@@ -994,6 +994,7 @@ pub fn run_desktop_app() {
                 width: px(940.0),
                 height: px(500.0),
             }),
+            ..Default::default()
         };
 
         cx.open_window(options, |_, cx| {
